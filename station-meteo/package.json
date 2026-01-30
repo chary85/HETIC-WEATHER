@@ -1,0 +1,12 @@
+{
+  "name": "station-meteo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Station météo IoT - ESP32, bridge MQTT, frontend. Install : cd bridge && npm install puis cd frontend && npm install",
+  "scripts": {
+    "install:bridge": "npm install --prefix bridge",
+    "install:frontend": "npm install --prefix frontend",
+    "bridge": "npm start --prefix bridge",
+    "frontend": "npm run dev --prefix frontend"
+  }
+}

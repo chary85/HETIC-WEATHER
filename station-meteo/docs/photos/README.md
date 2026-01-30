@@ -1,5 +1,3 @@
-# Photos du montage
+# Photo de la simulation du montage
 
-Ajoutez ici la photo du montage physique de la station météo.
-
-**Fichier attendu :** `montage.jpg`
+    J'ai fait sur Tinkercad fait la simulation du montage sans le capteur DHT22

@@ -21,12 +21,47 @@ station-meteo/
 - Node.js 18+ (pour le bridge)
 - Option Parcours B : Raspberry Pi, HostAPd, Mosquitto
 
-## Démarrage rapide
+## Comment lancer le projet
 
-1. **Configurer le broker MQTT** : voir `config/SETUP.md`
-2. **Flasher l’ESP32** : ouvrir `esp32/station.ino` dans l’IDE Arduino
-3. **Lancer le bridge** : `cd bridge && npm install && npm start`
-4. **Ouvrir le frontend** : `cd frontend && npm install && npm run dev` puis ouvrir l’URL indiquée
+### 1. Installer les dépendances (une seule fois)
+
+À la racine du projet (`station-meteo`) :
+
+```bash
+npm run install:bridge
+npm run install:frontend
+```
+
+Ou manuellement :
+```bash
+cd bridge && npm install
+cd ../frontend && npm install
+```
+
+### 2. Lancer le bridge (MQTT → API / WebSocket)
+
+Dans un terminal, à la racine :
+
+```bash
+npm run bridge
+```
+
+Le bridge écoute sur **http://localhost:3000** et se connecte au broker MQTT (voir `config/SETUP.md` pour Mosquitto).
+
+### 3. Lancer le frontend (interface web)
+
+Dans un **autre** terminal, à la racine :
+
+```bash
+npm run frontend
+```
+
+Ouvre ensuite l’URL affichée (souvent **http://localhost:5173**) dans le navigateur.
+
+### 4. (Optionnel) ESP32 et broker MQTT
+
+- **Broker MQTT** : Mosquitto doit tourner et être accessible (voir `config/SETUP.md`).
+- **ESP32** : flasher `esp32/station.ino` dans l’IDE Arduino après avoir configuré WiFi et MQTT dans le code.
 
 ## Documentation
 
