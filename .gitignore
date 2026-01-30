@@ -1,0 +1,14 @@
+# Dépendances
+node_modules/
+
+# Lock files (optionnel : supprime cette ligne si tu veux les versionner)
+# package-lock.json
+
+# Logs et cache
+npm-debug.log*
+*.log
+.npm
+
+# OS
+.DS_Store
+Thumbs.db
