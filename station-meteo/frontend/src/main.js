@@ -15,17 +15,16 @@ function setStatus(text, ok = true, isMock = false) {
 }
 
 function renderStation(stationId, data) {
-  let card = document.getElementById(station-${stationId});
+  let card = document.getElementById(`station-${stationId}`);
   if (!card) {
     card = document.createElement('article');
-    card.id = station-${stationId};
+    card.id = `station-${stationId}`;
     card.className = 'station-card';
     stationsEl.appendChild(card);
   }
 
-
   const tempClass = data.temp > 20 ? 'hot' : 'cold';
-  card.innerHTML = 
+  card.innerHTML = `
     <h2 class="${tempClass}">Station ${stationId}</h2>
     <div class="values">
       <div class="value">
@@ -38,7 +37,7 @@ function renderStation(stationId, data) {
       </div>
     </div>
     <p class="updated">Dernière mesure : ${new Date(data.at).toLocaleTimeString('fr-FR')}</p>
-  ;
+  `;
 }
 function startMocking() {
   setStatus('Serveur absent', true, true);
