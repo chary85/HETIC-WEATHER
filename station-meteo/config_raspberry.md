@@ -7,3 +7,5 @@ Le réseau était paramétré de tel sorte que le raspberry soit en 192.168.10.1
 Ayant été fait, le WPA ayant été désactivé pour permettre le paramétrage de prendre la relève, mais un problème de téléchargement d'un package a emp^écher de pouvoir finir.
 
 En conclusion, réseau existant, connectable, mais mauvais paramétrage des IP dû à l'oubli d'un package.
+
+Tâche effectuée par Hugo MARTINS
