@@ -37,3 +37,13 @@ station-meteo/
 ## Licence
 
 Projet pédagogique HETIC.
+
+## Participant
+
+Charles GROSSIN
+Baptiste BONNICHON-JACQUES
+Hugo MARTINS
+
+## PS
+
+Du fait de la volonté de déployer en utilisant la méthode B, le déploiement de la méthode A a été retardée en dernière minute
