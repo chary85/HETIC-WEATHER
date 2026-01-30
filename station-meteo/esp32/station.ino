@@ -1,87 +1,106 @@
-/*
- * Station Météo - Firmware ESP32
- * Envoie température et humidité vers un broker MQTT.
- * Capteur : DHT22 (GPIO 4) ou adapter pour BME280.
- */
-
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include <DHT.h>
 
-// --- Configuration WiFi ---
-#define WIFI_SSID     "VOTRE_SSID"
-#define WIFI_PASSWORD "VOTRE_MOT_DE_PASSE"
+const unsigned long debounceDelay = 50;
+const int BOUTON = 3; //PIN à changer par la suite
+const int LED1 = 1; //PIN à changer par la suite
+const int LED2 = 2; //PIN à changer par la suite
 
-// --- Configuration MQTT ---
-#define MQTT_BROKER   "192.168.1.10"   // IP du broker (Raspberry ou PC)
-#define MQTT_PORT     1883
-#define MQTT_CLIENT   "station-meteo-01"
-#define MQTT_TOPIC    "station-meteo/01/data"
+bool lastState = HIGH;
+bool currentState = HIGH;
+unsigned long lastDebounceTime = 0;
+bool reading = HIGH;
 
-// --- Capteur DHT ---
-#define DHT_PIN       4
-#define DHT_TYPE      DHT22
 
-WiFiClient espClient;
-PubSubClient mqtt(espClient);
-DHT dht(DHT_PIN, DHT_TYPE);
-
-unsigned long lastRead = 0;
-const unsigned long READ_INTERVAL_MS = 10000; // 10 s
-
-void setup() {
-  Serial.begin(115200);
-  dht.begin();
-  connectWiFi();
-  mqtt.setServer(MQTT_BROKER, MQTT_PORT);
-}
-
-void loop() {
-  if (!mqtt.connected()) {
-    reconnectMQTT();
-  }
-  mqtt.loop();
-
-  if (millis() - lastRead >= READ_INTERVAL_MS) {
-    lastRead = millis();
-    float t = dht.readTemperature();
-    float h = dht.readHumidity();
-    if (!isnan(t) && !isnan(h)) {
-      char payload[64];
-      snprintf(payload, sizeof(payload),
-               "{\"temp\":%.1f,\"humidity\":%.1f,\"ts\":%lu}",
-               t, h, millis());
-      if (mqtt.publish(MQTT_TOPIC, payload)) {
-        Serial.println("Published: " + String(payload));
-      } else {
-        Serial.println("Publish failed");
-      }
-    } else {
-      Serial.println("DHT read failed");
-    }
-  }
-}
+// ========== WIFI ==========
+const char* WIFI_SSID = "";
+const char* WIFI_PASS = "azer1234";
 
 void connectWiFi() {
-  Serial.print("Connecting to ");
-  Serial.println(WIFI_SSID);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  Serial.print("[WIFI] Connexion");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("\nWiFi connected, IP: " + WiFi.localIP().toString());
+
+  Serial.println("\n[WIFI] Connecté");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
 }
 
-void reconnectMQTT() {
+// ========== MQTT ==========
+const char* MQTT_HOST = "captain.dev0.pandor.cloud"; // À changer avec mon host
+const uint16_t MQTT_PORT = 1884; // À changer avec mon port sur le raspberry pi
+const char* MQTT_TOPIC = "temp/";
+const char* MQTT_USER = "";
+const char* MQTT_PASS = "";
+
+WiFiClient wifiClient;
+PubSubClient mqtt(wifiClient);
+
+
+void connectMQTT() {
+  mqtt.setServer(MQTT_HOST, MQTT_PORT);
+
   while (!mqtt.connected()) {
-    Serial.print("Connecting MQTT... ");
-    if (mqtt.connect(MQTT_CLIENT)) {
-      Serial.println("connected");
+    Serial.print("[MQTT] Connexion... ");
+
+    if (mqtt.connect(MQTT_USER, MQTT_PASS)) {
+      Serial.println("OK");
     } else {
-      Serial.print("failed, rc=");
+      Serial.print("ECHEC, rc=");
       Serial.println(mqtt.state());
-      delay(3000);
+      delay(2000);
     }
+  }
+}
+
+// ========== ENVOI MESSAGE ==========
+void sendButtonEvent(char command) {
+  String payload = "{\"esp32_id\":\"" + esp32_id + "\",\"temp\":\"" + String(command) + "\"}";
+  mqtt.publish(MQTT_TOPIC, payload.c_str());
+  Serial.println(payload);
+}
+
+// ========== SETUP ==========
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  esp32_id = "esp32-" + String((uint32_t)ESP.getEfuseMac(), HEX);
+
+  pinMode(BOUTON, INPUT_PULLUP);
+  pinMode(LED1, OUTPUT);
+  pinMode(LED2, OUTPUT);
+
+  connectWiFi();
+  connectMQTT();
+}
+
+// ========== LOOP ==========
+void loop() {
+  if (WiFi.status() != WL_CONNECTED) connectWiFi();
+  if (!mqtt.connected()) connectMQTT();
+  mqtt.loop();
+
+
+  if (digitalRead(BOUTON) != lastState) {
+    lastDebounceTime = millis();
+  }
+
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    if (digitalRead(BOUTON) != currentState) {
+      currentState = digitalRead(BOUTON);
+      if (currentState == LOW) {
+        digitalWrite(LED1, !digitalRead(LED1));
+        digitalWrite(LED2, !digitalRead(LED2));
+        if (digitalRead(LED1) == HIGH) sendButtonEvent('C');
+        else sendButtonEvent('F');
+      }
+    }
+    lastState = digitalRead(BOUTON);
   }
 }
