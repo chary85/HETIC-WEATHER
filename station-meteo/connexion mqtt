@@ -1,0 +1,122 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+// ========== WIFI ==========
+const char* WIFI_SSID = "Redmi de Charles";
+const char* WIFI_PASS = "azer1234";
+
+// ========== MQTT ==========
+const char* MQTT_HOST = "captain.dev0.pandor.cloud";
+const uint16_t MQTT_PORT = 1884;
+const char* MQTT_TOPIC = "pokemon/vote";
+const char* MQTT_USER = "";
+const char* MQTT_PASS = "";
+
+// ========== STRUCTURE BOUTONS ==========
+struct Button {
+  uint8_t pin;
+  const char* command;
+  bool lastState;
+  bool currentState;
+  unsigned long lastDebounceTime;
+};
+
+// Déclaration des 5 boutons
+Button buttons[] = {
+  {4,  "up",    HIGH, HIGH, 0},
+  {5,  "down",  HIGH, HIGH, 0},
+  {12, "left",  HIGH, HIGH, 0},
+  {13, "right", HIGH, HIGH, 0},
+  {14, "A",     HIGH, HIGH, 0}
+};
+
+const int buttonCount = sizeof(buttons) / sizeof(Button);
+const unsigned long debounceDelay = 50;
+
+// ========== MQTT ==========
+WiFiClient wifiClient;
+PubSubClient mqtt(wifiClient);
+
+String esp32_id;
+
+// ========== WIFI ==========
+void connectWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  Serial.print("[WIFI] Connexion");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\n[WIFI] Connecté");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+}
+
+// ========== MQTT ==========
+void connectMQTT() {
+  mqtt.setServer(MQTT_HOST, MQTT_PORT);
+
+  while (!mqtt.connected()) {
+    Serial.print("[MQTT] Connexion... ");
+
+    if (mqtt.connect(esp32_id.c_str(), MQTT_USER, MQTT_PASS)) {
+      Serial.println("OK");
+    } else {
+      Serial.print("ECHEC, rc=");
+      Serial.println(mqtt.state());
+      delay(2000);
+    }
+  }
+}
+
+// ========== ENVOI MESSAGE ==========
+void sendButtonEvent(const char* command) {
+  String payload = "{\"esp32_id\":\"" + esp32_id + "\",\"command\":\"" + command + "\"}";
+  mqtt.publish(MQTT_TOPIC, payload.c_str());
+  Serial.println("[MQTT] " + payload);
+}
+
+// ========== SETUP ==========
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  esp32_id = "esp32-" + String((uint32_t)ESP.getEfuseMac(), HEX);
+
+  for (int i = 0; i < buttonCount; i++) {
+    pinMode(buttons[i].pin, INPUT_PULLUP);
+  }
+
+  connectWiFi();
+  connectMQTT();
+}
+
+// ========== LOOP ==========
+void loop() {
+  if (WiFi.status() != WL_CONNECTED) connectWiFi();
+  if (!mqtt.connected()) connectMQTT();
+  mqtt.loop();
+
+  for (int i = 0; i < buttonCount; i++) {
+    bool reading = digitalRead(buttons[i].pin);
+
+    if (reading != buttons[i].lastState) {
+      buttons[i].lastDebounceTime = millis();
+    }
+
+    if ((millis() - buttons[i].lastDebounceTime) > debounceDelay) {
+      if (reading != buttons[i].currentState) {
+        buttons[i].currentState = reading;
+
+        if (buttons[i].currentState == LOW) {
+          sendButtonEvent(buttons[i].command);
+        }
+      }
+    }
+
+    buttons[i].lastState = reading;
+  }
+}
